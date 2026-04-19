@@ -1,7 +1,6 @@
 // Integration tests for vectX
 use vectx_core::{Collection, CollectionConfig, Distance, Point, PointId, Vector};
 use vectx_storage::StorageManager;
-use std::collections::HashMap;
 
 #[test]
 fn test_collection_creation() {
@@ -232,13 +231,11 @@ fn test_vector_search_with_collection() {
     let collection = Collection::new(config);
     
     // Insert products with mock vectors
-    let products = vec![
-        (vec![1.0, 0.0, 0.0], serde_json::json!({"name": "Prosciutto cotto", "price": 1.99, "category": "salumi"})),
+    let products = [(vec![1.0, 0.0, 0.0], serde_json::json!({"name": "Prosciutto cotto", "price": 1.99, "category": "salumi"})),
         (vec![0.9, 0.1, 0.0], serde_json::json!({"name": "Prosciutto crudo", "price": 2.49, "category": "salumi"})),
         (vec![0.8, 0.2, 0.0], serde_json::json!({"name": "Mortadella", "price": 1.79, "category": "salumi"})),
         (vec![0.0, 0.0, 1.0], serde_json::json!({"name": "iPhone 15", "price": 999.0, "category": "electronics"})),
-        (vec![0.1, 0.0, 0.9], serde_json::json!({"name": "Samsung Galaxy", "price": 899.0, "category": "electronics"})),
-    ];
+        (vec![0.1, 0.0, 0.9], serde_json::json!({"name": "Samsung Galaxy", "price": 899.0, "category": "electronics"}))];
     
     for (i, (vec, payload)) in products.iter().enumerate() {
         let point = Point::new(

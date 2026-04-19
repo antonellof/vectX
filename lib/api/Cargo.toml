@@ -1,6 +1,6 @@
 [package]
 name = "vectx-api"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 rust-version = "1.75"
 description = "REST and gRPC API for vectX vector database - Qdrant-compatible endpoints"
@@ -12,8 +12,8 @@ keywords = ["vector-database", "rest-api", "grpc", "qdrant"]
 categories = ["database", "web-programming"]
 
 [dependencies]
-vectx-core = { version = "0.2.7", path = "../core" }
-vectx-storage = { version = "0.2.7", path = "../storage" }
+vectx-core = { version = "0.2.8", path = "../core" }
+vectx-storage = { version = "0.2.8", path = "../storage" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"

@@ -1,13 +1,42 @@
-# vectX v0.1.1
+# vectX v0.2.8
 
-High-performance vector database with Qdrant API compatibility.
+A maintenance release focused on code quality, removing dead code, and fixing all
+compiler and Clippy warnings across the workspace.
 
-## Highlights
+## What's Changed
 
-- 🚀 **6x faster search** than Qdrant
-- ⚡ **10x faster inserts** than Redis
-- 🎯 **0.13ms p50 latency** (gRPC)
-- 📦 **Single binary** (~6MB)
+### Code quality
+- Removed an unused `deserialize_vector` helper from the REST layer (the
+  `_optional` variant covers all call sites).
+- Annotated Qdrant API-compatibility request structs with `#[allow(dead_code)]`
+  and clear comments so it's obvious which fields are accepted-for-compat-but-
+  not-yet-routed (`UpdateCollectionRequest`, `RecoverSnapshotRequest`,
+  `CountRequest`, `SetPayloadRequest`, `DeletePayloadRequest`,
+  `ClearPayloadRequest`, `DeleteVectorsRequest`, `BatchSearchRequest`,
+  `SearchGroupsRequest`, `DiscoverRequest`, `ContextPair`,
+  `DiscoverBatchRequest`, `FacetRequest`, `BatchQueryRequest`,
+  `QueryGroupsRequest`, `VectorConfig`).
+- Cleaned up dead code in the storage manager and snapshot importer.
+- Suppressed dead-method warnings on intentionally-retained `HnswIndex`
+  helpers (`contains`, `distance`).
+- Removed an unused `HashMap` import from the integration test.
+
+### Clippy fixes (workspace-wide)
+- `vectx-core`: removed an unnecessary `Distance::clone()` (it's `Copy`) and
+  switched two manual ceiling-division sites to `usize::div_ceil`.
+- `vectx-storage`: dropped an empty `if` branch and replaced two
+  `Option::map(..).flatten()` calls with `Option::and_then`.
+- `vectx-api`: replaced `while let Some(_) = iter.next()` with `for _ in iter`,
+  collapsed a nested `if let / else if`, and used `Option::map` where
+  appropriate.
+
+### Examples
+- Updated `examples/data-chatbot/next-env.d.ts` for the Next.js 16 typed-routes
+  layout (`./.next/dev/types/routes.d.ts`).
+
+## Compatibility
+
+No public API or wire-format changes. This is a drop-in replacement for v0.2.7.
 
 ## Performance
 
@@ -17,20 +46,11 @@ High-performance vector database with Qdrant API compatibility.
 | Search (gRPC) | 6.3x faster | 5x faster |
 | Search Latency | 6.6x lower | 5x lower |
 
-## Features
-
-- **HNSW Indexing** with SIMD optimizations (AVX2, SSE, NEON)
-- **Qdrant-compatible REST API** - drop-in replacement
-- **gRPC API** for maximum performance
-- **BM25 text search** with ranking
-- **Payload filtering** by JSON metadata
-- **Redis-style persistence** (WAL + snapshots + LMDB)
-
 ## Installation
 
-### Pre-built Binaries
+### Pre-built binaries
 
-Download the appropriate binary for your platform from the assets below.
+Download the appropriate archive for your platform from the assets below.
 
 ### From crates.io
 
@@ -38,7 +58,7 @@ Download the appropriate binary for your platform from the assets below.
 cargo install vectx
 ```
 
-### From Source
+### From source
 
 ```bash
 git clone https://github.com/antonellof/vectX.git

@@ -303,10 +303,8 @@ impl PointsService {
             serde_json::Value::Number(n) => {
                 if let Some(i) = n.as_i64() {
                     Some(value::Kind::IntegerValue(i))
-                } else if let Some(f) = n.as_f64() {
-                    Some(value::Kind::DoubleValue(f))
                 } else {
-                    None
+                    n.as_f64().map(value::Kind::DoubleValue)
                 }
             }
             serde_json::Value::String(s) => Some(value::Kind::StringValue(s.clone())),
@@ -626,7 +624,7 @@ impl vectx::points_server::Points for PointsService {
         
         // Skip to offset
         if let Some(ref offset) = offset_id {
-            while let Some(p) = points_iter.next() {
+            for p in points_iter.by_ref() {
                 if p.id.to_string() == *offset {
                     break;
                 }

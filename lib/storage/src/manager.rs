@@ -153,11 +153,6 @@ impl StorageManager {
     pub fn delete_collection(&self, name: &str) -> Result<bool> {
         let mut collections = self.collections.write();
         let removed = collections.remove(name).is_some();
-        
-        // Also clean up similarity schema if it exists
-        if removed {
-        }
-        
         Ok(removed)
     }
 

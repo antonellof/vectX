@@ -419,7 +419,7 @@ impl Collection {
         
         let points = self.points.read();
         let query_slice = query.as_slice();
-        let distance = self.config.distance.clone();
+        let distance = self.config.distance;
         
         // Collect points to a Vec for indexing
         let point_vec: Vec<_> = points.values().collect();

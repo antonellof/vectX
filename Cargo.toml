@@ -1,6 +1,6 @@
 [package]
 name = "vectx"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 rust-version = "1.75"
 description = "A fast in-memory vector database with full Qdrant API compatibility"
@@ -53,9 +53,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 log = "0.4"
 
 # Internal crates
-vectx-core = { version = "0.2.7", path = "lib/core" }
-vectx-storage = { version = "0.2.7", path = "lib/storage" }
-vectx-api = { version = "0.2.7", path = "lib/api" }
+vectx-core = { version = "0.2.8", path = "lib/core" }
+vectx-storage = { version = "0.2.8", path = "lib/storage" }
+vectx-api = { version = "0.2.8", path = "lib/api" }
 
 [dev-dependencies]
 tempfile = "3.0"

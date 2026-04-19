@@ -16,7 +16,7 @@ struct VisitedSet {
 impl VisitedSet {
     #[inline]
     fn new(capacity: usize) -> Self {
-        let num_words = (capacity + 63) / 64;
+        let num_words = capacity.div_ceil(64);
         Self {
             bits: vec![0; num_words],
             generation: 1,
@@ -37,7 +37,7 @@ impl VisitedSet {
 
     #[inline]
     fn ensure_capacity(&mut self, capacity: usize) {
-        let num_words = (capacity + 63) / 64;
+        let num_words = capacity.div_ceil(64);
         if num_words > self.bits.len() {
             self.bits.resize(num_words, 0);
             self.generations.resize(num_words, 0);
@@ -66,6 +66,7 @@ impl VisitedSet {
     }
 
     #[inline]
+    #[allow(dead_code)] // Kept for parity with `set`; reserved for future debug/inspection tools
     fn contains(&self, idx: usize) -> bool {
         let word_idx = idx / 64;
         let bit_idx = idx % 64;
@@ -314,6 +315,7 @@ impl HnswIndex {
 
     /// Distance between query vector and node (for public API)
     #[inline]
+    #[allow(dead_code)] // Convenience helper retained for future external scoring use
     fn distance(&self, query: &Vector, node_idx: usize) -> f32 {
         let node_vec = self.get_vector(node_idx);
         let dot = crate::simd::dot_product_simd(query.as_slice(), node_vec);

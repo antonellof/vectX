@@ -1,6 +1,6 @@
 [package]
 name = "vectx-storage"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 rust-version = "1.75"
 description = "Storage layer for vectX vector database - WAL, snapshots, LMDB persistence"
@@ -12,7 +12,7 @@ keywords = ["vector-database", "storage", "persistence", "wal", "lmdb"]
 categories = ["database"]
 
 [dependencies]
-vectx-core = { version = "0.2.7", path = "../core" }
+vectx-core = { version = "0.2.8", path = "../core" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.3"

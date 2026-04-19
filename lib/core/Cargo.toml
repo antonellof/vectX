@@ -1,6 +1,6 @@
 [package]
 name = "vectx-core"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 rust-version = "1.75"
 description = "Core library for vectX vector database - HNSW indexing, SIMD operations, BM25 search"

@@ -63,6 +63,7 @@ struct CreateCollectionRequest {
 }
 
 #[derive(Deserialize, Clone)]
+#[allow(dead_code)] // Qdrant API compatibility - extra fields accepted but currently ignored
 struct VectorConfig {
     size: usize,
     distance: Option<String>,
@@ -156,115 +157,12 @@ struct PointRequest {
     payload: Option<serde_json::Value>,
 }
 
-// Custom deserializer to handle multiple vector formats (Qdrant compatibility)
-// Simple: [0.1, 0.2, 0.3]
-// Multivector: [[0.1, 0.2], [0.3, 0.4]] -> stores full multivector for MaxSim search
-// Named vectors: {"vector_name": [0.1, 0.2]} -> extracts the vector
-fn deserialize_vector<'de, D>(deserializer: D) -> Result<ParsedVector, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value = serde_json::Value::deserialize(deserializer)?;
-    
-    fn parse_simple_vector(arr: &[serde_json::Value]) -> Result<Vec<f32>, String> {
-        arr.iter()
-            .map(|v| v.as_f64().map(|f| f as f32).ok_or_else(|| "expected f32".to_string()))
-            .collect()
-    }
-    
-    fn parse_multivector(arr: &[serde_json::Value]) -> Result<Vec<Vec<f32>>, String> {
-        arr.iter()
-            .map(|sub| {
-                if let serde_json::Value::Array(sub_arr) = sub {
-                    parse_simple_vector(sub_arr)
-                } else {
-                    Err("expected array of arrays for multivector".to_string())
-                }
-            })
-            .collect()
-    }
-    
-    match &value {
-        // Array: could be simple vector or multivector
-        serde_json::Value::Array(arr) if !arr.is_empty() => {
-            match arr.first() {
-                // Simple vector: [0.1, 0.2, 0.3]
-                Some(serde_json::Value::Number(_)) => {
-                    let primary = parse_simple_vector(arr).map_err(serde::de::Error::custom)?;
-                    Ok(ParsedVector { primary, multivector: None, sparse_vectors: Vec::new() })
-                }
-                // Multivector: [[0.1, 0.2], [0.3, 0.4]] - store full multivector
-                Some(serde_json::Value::Array(_)) => {
-                    let multivec = parse_multivector(arr).map_err(serde::de::Error::custom)?;
-                    let primary = multivec.first().cloned().unwrap_or_default();
-                    Ok(ParsedVector { primary, multivector: Some(multivec), sparse_vectors: Vec::new() })
-                }
-                _ => Err(serde::de::Error::custom("invalid vector format: expected number or array"))
-            }
-        }
-        // Empty array
-        serde_json::Value::Array(_) => {
-            Err(serde::de::Error::custom("vector cannot be empty"))
-        }
-        // Named vector: {"vector_name": [0.1, 0.2]} or {"": [...]}
-        // Or sparse vector: {"keywords": {"indices": [...], "values": [...]}}
-        serde_json::Value::Object(obj) => {
-            let mut sparse_vectors = Vec::new();
-            let mut primary = vec![0.0];
-            let mut multivector = None;
-            
-            for (name, vec_value) in obj.iter() {
-                match vec_value {
-                    // Dense named vector: [0.1, 0.2, 0.3]
-                    serde_json::Value::Array(arr) if !arr.is_empty() => {
-                        match arr.first() {
-                            Some(serde_json::Value::Number(_)) => {
-                                primary = parse_simple_vector(arr).map_err(serde::de::Error::custom)?;
-                            }
-                            Some(serde_json::Value::Array(_)) => {
-                                // Named multivector
-                                let multivec = parse_multivector(arr).map_err(serde::de::Error::custom)?;
-                                primary = multivec.first().cloned().unwrap_or_default();
-                                multivector = Some(multivec);
-                            }
-                            _ => {}
-                        }
-                    }
-                    // Sparse vector: {"indices": [...], "values": [...]}
-                    serde_json::Value::Object(sparse_obj) => {
-                        if let (Some(indices_arr), Some(values_arr)) = (
-                            sparse_obj.get("indices").and_then(|i| i.as_array()),
-                            sparse_obj.get("values").and_then(|v| v.as_array())
-                        ) {
-                            let indices: Vec<u32> = indices_arr.iter()
-                                .filter_map(|i| i.as_u64().map(|n| n as u32))
-                                .collect();
-                            let values: Vec<f32> = values_arr.iter()
-                                .filter_map(|v| v.as_f64().map(|f| f as f32))
-                                .collect();
-                            
-                            if !indices.is_empty() && !values.is_empty() {
-                                sparse_vectors.push(ParsedSparseVector {
-                                    name: name.clone(),
-                                    indices,
-                                    values,
-                                });
-                            }
-                        }
-                    }
-                    // Empty array - ignore
-                    serde_json::Value::Array(_) => {}
-                    _ => {}
-                }
-            }
-            
-            Ok(ParsedVector { primary, multivector, sparse_vectors })
-        }
-        _ => Err(serde::de::Error::custom("vector must be an array or object")),
-    }
-}
-
 // Custom deserializer for optional vector (for similarity schema auto-embedding)
+// Supports multiple formats (Qdrant compatibility):
+//   Simple:      [0.1, 0.2, 0.3]
+//   Multivector: [[0.1, 0.2], [0.3, 0.4]] -> stores full multivector for MaxSim search
+//   Named:       {"vector_name": [0.1, 0.2]}
+//   Sparse:      {"keywords": {"indices": [...], "values": [...]}}
 fn deserialize_vector_optional<'de, D>(deserializer: D) -> Result<Option<ParsedVector>, D::Error>
 where
     D: Deserializer<'de>,
@@ -1987,6 +1885,7 @@ async fn delete_full_snapshot(
 
 /// Update collection parameters
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - update params not yet implemented
 struct UpdateCollectionRequest {
     #[serde(default)]
     optimizers_config: Option<serde_json::Value>,
@@ -2049,6 +1948,7 @@ async fn create_snapshot(
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - priority/checksum currently informational
 struct RecoverSnapshotRequest {
     location: String,
     #[serde(default)]
@@ -2364,6 +2264,7 @@ async fn get_points_by_ids(
 
 /// Count points in collection
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter/exact accepted but not yet applied
 struct CountRequest {
     #[serde(default)]
     filter: Option<serde_json::Value>,
@@ -2393,6 +2294,7 @@ async fn count_points(
 
 /// Set payload on points
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter accepted but not yet applied
 struct SetPayloadRequest {
     payload: serde_json::Value,
     #[serde(default)]
@@ -2490,6 +2392,7 @@ async fn overwrite_payload(
 
 /// Delete payload fields from points
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter accepted but not yet applied
 struct DeletePayloadRequest {
     keys: Vec<String>,
     #[serde(default)]
@@ -2542,6 +2445,7 @@ async fn delete_payload(
 
 /// Clear all payload from points
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter accepted but not yet applied
 struct ClearPayloadRequest {
     #[serde(default)]
     points: Option<Vec<serde_json::Value>>,
@@ -2668,6 +2572,7 @@ async fn update_vectors(
 
 /// Delete vectors from points
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter accepted but not yet applied
 struct DeleteVectorsRequest {
     #[serde(default)]
     points: Option<Vec<serde_json::Value>>,
@@ -2702,11 +2607,10 @@ async fn delete_vectors(
                 _ => continue,
             };
             // Delete multivector if it was the target
-            if req.vectors.iter().any(|v| v == "multivector" || v.is_empty()) {
-                if collection.update_multivector(&id_str, None).unwrap_or(false) {
+            if req.vectors.iter().any(|v| v == "multivector" || v.is_empty())
+                && collection.update_multivector(&id_str, None).unwrap_or(false) {
                     deleted_count += 1;
                 }
-            }
         }
     }
 
@@ -2884,6 +2788,7 @@ fn parse_point_from_json(json: &serde_json::Value) -> Option<Point> {
 
 /// Batch search
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - batch dispatch not yet implemented
 struct BatchSearchRequest {
     searches: Vec<serde_json::Value>,
 }
@@ -2905,6 +2810,7 @@ async fn batch_search(
 
 /// Search points grouped by a payload field
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter accepted but not yet applied
 struct SearchGroupsRequest {
     vector: Vec<f32>,
     group_by: String,
@@ -2994,6 +2900,7 @@ async fn search_groups(
 
 /// Discover points using context pairs
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - context/filter accepted but discovery uses target only
 struct DiscoverRequest {
     #[serde(default)]
     target: Option<serde_json::Value>,
@@ -3010,6 +2917,7 @@ struct DiscoverRequest {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - context pairs accepted but not yet used
 struct ContextPair {
     positive: serde_json::Value,
     negative: serde_json::Value,
@@ -3082,6 +2990,7 @@ async fn discover_points(
 
 /// Batch discover points
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - batch dispatch not yet implemented
 struct DiscoverBatchRequest {
     searches: Vec<serde_json::Value>,
 }
@@ -3103,6 +3012,7 @@ async fn discover_batch(
 
 /// Facet counts - count points by unique payload values
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter/exact accepted but not yet applied
 struct FacetRequest {
     key: String,
     #[serde(default)]
@@ -3168,6 +3078,7 @@ async fn facet_counts(
 
 /// Batch query
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - batch dispatch not yet implemented
 struct BatchQueryRequest {
     searches: Vec<serde_json::Value>,
 }
@@ -3189,6 +3100,7 @@ async fn batch_query(
 
 /// Query points with grouping
 #[derive(Deserialize)]
+#[allow(dead_code)] // Qdrant API compatibility - filter accepted but not yet applied
 struct QueryGroupsRequest {
     query: serde_json::Value,
     group_by: String,

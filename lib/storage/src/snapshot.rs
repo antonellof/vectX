@@ -98,11 +98,10 @@ impl SnapshotManager {
         let creation_time = metadata.created()
             .ok()
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map(|d| {
+            .and_then(|d| {
                 DateTime::from_timestamp(d.as_secs() as i64, 0)
                     .map(|dt| dt.format("%Y-%m-%dT%H:%M:%SZ").to_string())
-            })
-            .flatten();
+            });
 
         Ok(SnapshotDescription {
             name: snapshot_name,
@@ -136,11 +135,10 @@ impl SnapshotManager {
                     let creation_time = metadata.created()
                         .ok()
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                        .map(|d| {
+                        .and_then(|d| {
                             DateTime::from_timestamp(d.as_secs() as i64, 0)
                                 .map(|dt| dt.format("%Y-%m-%dT%H:%M:%SZ").to_string())
-                        })
-                        .flatten();
+                        });
 
                     snapshots.push(SnapshotDescription {
                         name: name.to_string(),
@@ -282,7 +280,7 @@ impl SnapshotManager {
         let mut archive = Archive::new(cursor);
         
         let mut collection_config: Option<serde_json::Value> = None;
-        let mut collection_name = String::from("imported_collection");
+        let collection_name = String::from("imported_collection");
         
         // Read through the archive looking for config.json
         for entry in archive.entries()? {
